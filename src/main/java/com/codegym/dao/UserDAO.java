@@ -26,6 +26,10 @@ public class UserDAO implements IUserDAO {
             "DELETE FROM users WHERE id = ?;";
     private static final String UPDATE_USERS_SQL =
             "UPDATE users SET name = ?, email = ?, country = ? WHERE id = ?;";
+    private static final String SEARCH_USERS_BY_COUNTRY =
+            "SELECT * FROM users WHERE country LIKE ?;";
+    private static final String SORT_USERS_BY_NAME =
+            "SELECT * FROM users ORDER BY name ASC;";
 
     public UserDAO() {
     }
@@ -76,24 +80,7 @@ public class UserDAO implements IUserDAO {
 
     @Override
     public List<User> selectAllUsers() {
-        List<User> users = new ArrayList<>();
-
-        try (Connection connection = getConnection();
-             PreparedStatement preparedStatement = connection.prepareStatement(SELECT_ALL_USERS)) {
-            ResultSet rs = preparedStatement.executeQuery();
-
-            while (rs.next()) {
-                int id = rs.getInt("id");
-                String name = rs.getString("name");
-                String email = rs.getString("email");
-                String country = rs.getString("country");
-                users.add(new User(id, name, email, country));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return users;
+        return readUsers(SELECT_ALL_USERS, null);
     }
 
     @Override
@@ -124,5 +111,40 @@ public class UserDAO implements IUserDAO {
         }
 
         return rowUpdated;
+    }
+
+    @Override
+    public List<User> searchByCountry(String country) {
+        return readUsers(SEARCH_USERS_BY_COUNTRY, "%" + country.trim() + "%");
+    }
+
+    @Override
+    public List<User> sortByName() {
+        return readUsers(SORT_USERS_BY_NAME, null);
+    }
+
+    private List<User> readUsers(String sql, String parameter) {
+        List<User> users = new ArrayList<>();
+
+        try (Connection connection = getConnection();
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            if (parameter != null) {
+                preparedStatement.setString(1, parameter);
+            }
+
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                String email = rs.getString("email");
+                String country = rs.getString("country");
+                users.add(new User(id, name, email, country));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return users;
     }
 }
