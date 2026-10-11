@@ -55,6 +55,8 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+
         String action = request.getParameter("action");
         if (action == null) {
             action = "";
@@ -71,6 +73,12 @@ public class UserServlet extends HttpServlet {
                 case "delete":
                     showDeleteForm(request, response);
                     break;
+                case "search":
+                    searchByCountry(request, response);
+                    break;
+                case "sort":
+                    sortByName(request, response);
+                    break;
                 default:
                     listUser(request, response);
                     break;
@@ -82,8 +90,30 @@ public class UserServlet extends HttpServlet {
 
     private void listUser(HttpServletRequest request, HttpServletResponse response)
             throws SQLException, IOException, ServletException {
-        List<User> listUser = userDAO.selectAllUsers();
-        request.setAttribute("listUser", listUser);
+        forwardList(request, response, userDAO.selectAllUsers());
+    }
+
+    private void searchByCountry(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String country = request.getParameter("country");
+        if (country == null || country.trim().isEmpty()) {
+            forwardList(request, response, userDAO.selectAllUsers());
+            return;
+        }
+
+        request.setAttribute("country", country);
+        forwardList(request, response, userDAO.searchByCountry(country));
+    }
+
+    private void sortByName(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("sorted", true);
+        forwardList(request, response, userDAO.sortByName());
+    }
+
+    private void forwardList(HttpServletRequest request, HttpServletResponse response, List<User> users)
+            throws ServletException, IOException {
+        request.setAttribute("listUser", users);
         RequestDispatcher dispatcher = request.getRequestDispatcher("/user/list.jsp");
         dispatcher.forward(request, response);
     }
